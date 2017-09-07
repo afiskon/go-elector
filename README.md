@@ -30,7 +30,7 @@ Determine current leader id, returns '' if leader is unknown:
 func (inst *Instance) GetCurrentLeader() (leaderid string)
 ```
 
-Registers a callback:
+Register a callback:
 
 ```go
 func (inst *Instance) RegisterCallback(cb Callback)
