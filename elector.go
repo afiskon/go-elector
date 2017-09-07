@@ -2,12 +2,12 @@
 package elector
 
 import (
-	"log"
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -16,6 +16,7 @@ import (
 
 // Type of requests sent to the State Keeper process.
 type requestType uint16
+
 const (
 	// Register a callback
 	tREGCALLBACK requestType = iota
@@ -72,8 +73,8 @@ type consulResponse struct {
 
 // Elector configuration paramteres.
 type electorConfig struct {
-	selfId string
-	consulUrl string
+	selfId         string
+	consulUrl      string
 	leaderHoldTime time.Duration
 }
 
@@ -203,17 +204,17 @@ func stateKeeperProc(reqch <-chan request) {
 	for {
 		req := <-reqch
 		switch req.typetag {
-			case tGETLEADER: // get current leader
-				req.respch <- leaderId
-			case tUPDATELEADER: // update current leader
-				for i := 0; i < len(callbacks); i++ {
-					callbacks[i](leaderId, req.newLeaderId)
-				}
-				leaderId = req.newLeaderId
-			case tREGCALLBACK: // add a new callback
-				callbacks = append(callbacks, req.callback)
-			default:
-				log.Panicf("State Keeper: unexpected request typetag %d\n", req.typetag)
+		case tGETLEADER: // get current leader
+			req.respch <- leaderId
+		case tUPDATELEADER: // update current leader
+			for i := 0; i < len(callbacks); i++ {
+				callbacks[i](leaderId, req.newLeaderId)
+			}
+			leaderId = req.newLeaderId
+		case tREGCALLBACK: // add a new callback
+			callbacks = append(callbacks, req.callback)
+		default:
+			log.Panicf("State Keeper: unexpected request typetag %d\n", req.typetag)
 		}
 	}
 }
@@ -223,7 +224,7 @@ func stateUpdaterProc(conf *electorConfig, updch chan<- request) {
 	var err error
 	var lastLeaderId string
 
-	req := request { typetag: tUPDATELEADER }
+	req := request{typetag: tUPDATELEADER}
 	for {
 		req.newLeaderId, err = getCurrentLeader(conf)
 		if err != nil {
@@ -231,13 +232,13 @@ func stateUpdaterProc(conf *electorConfig, updch chan<- request) {
 			log.Printf("State Updater: unable to determine current leader: '%s'\n", err.Error())
 		}
 
-		if(req.newLeaderId != lastLeaderId) {
+		if req.newLeaderId != lastLeaderId {
 			updch <- req
 			lastLeaderId = req.newLeaderId
 		}
 
 		// the random part guarantees that all the peers will not send requests to Consul simultaneously
-		time.Sleep((conf.leaderHoldTime / 3) + time.Duration(rand.Intn(1000)) * time.Millisecond)
+		time.Sleep((conf.leaderHoldTime / 3) + time.Duration(rand.Intn(1000))*time.Millisecond)
 	}
 }
 
@@ -254,16 +255,16 @@ func Create(selfId string, consulUrl string, leaderHoldTime time.Duration) (inst
 	}
 
 	reqch := make(chan request)
-	conf := &electorConfig{ selfId: selfId, consulUrl: consulUrl, leaderHoldTime: leaderHoldTime }
+	conf := &electorConfig{selfId: selfId, consulUrl: consulUrl, leaderHoldTime: leaderHoldTime}
 	go stateKeeperProc(reqch)
 	go stateUpdaterProc(conf, reqch)
-	return &Instance { reqch: reqch }, nil
+	return &Instance{reqch: reqch}, nil
 }
 
 // Returns current leader id, or '' if leader is unknown.
 func (inst *Instance) GetCurrentLeader() (leaderid string) {
 	respch := make(chan string)
-	req := request{ typetag: tGETLEADER, respch: respch }
+	req := request{typetag: tGETLEADER, respch: respch}
 	inst.reqch <- req
 	resp := <-respch
 	return resp
@@ -271,6 +272,6 @@ func (inst *Instance) GetCurrentLeader() (leaderid string) {
 
 // Registers a callback.
 func (inst *Instance) RegisterCallback(cb Callback) {
-	req := request{ typetag: tREGCALLBACK, callback: cb }
+	req := request{typetag: tREGCALLBACK, callback: cb}
 	inst.reqch <- req
 }
