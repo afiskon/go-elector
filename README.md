@@ -20,7 +20,8 @@ type Callback func(oldLeaderId string, newLeaderId string)
 Create a new instance of the elector:
 
 ```go
-func Create(selfId string, consulUrl string, leaderHoldTime time.Duration) (inst *Instance, err error)
+func Create(selfId string, consulUrl string, leaderHoldTime time.Duration)
+  (inst *Instance, err error)
 ```
 
 Determine current leader id, returns '' if leader is unknown:
