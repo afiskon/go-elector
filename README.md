@@ -1,6 +1,6 @@
 # go-elector
 
-Leader election based on leader lease approach. Requires Consul.
+Leader election based on the leader lease approach. Requires Consul.
 
 ## API
 
