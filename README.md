@@ -4,40 +4,40 @@ Leader election based on leader lease approach. Requires Consul.
 
 ## API
 
+Representation of the elector instance (this type is exported only for better
+docs, could have kept private):
+
 ```go
 type Instance
 ```
 
-Representation of the elector instance. This type is exported only for better
-docs, could have kept private.
+Type of function called when leader changes:
 
 ```go
 type Callback func(oldLeaderId string, newLeaderId string)
 ```
 
-Type of function called when leader changes.
+Create a new instance of the elector:
 
 ```go
 func Create(selfId string, consulUrl string, leaderHoldTime time.Duration) (inst *Instance, err error)
 ```
 
-Create an instance of the elector.
+Determine current leader id, returns '' if leader is unknown:
 
 ```go
 func (inst *Instance) GetCurrentLeader() (leaderid string)
 ```
 
-Returns current leader id, or '' if leader is unknown.
+Registers a callback:
 
 ```go
 func (inst *Instance) RegisterCallback(cb Callback)
 ```
 
-Registers a callback.
-
 ## Example
 
-```
+```go
 package main
 
 import (
@@ -71,6 +71,6 @@ func main() {
 
 Usage:
 
-```
+```bash
 ./leader-elect -uniqid archlinux1
 ```
