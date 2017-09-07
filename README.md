@@ -37,4 +37,40 @@ Registers a callback.
 
 ## Example
 
-TODO
+```
+package main
+
+import (
+    "flag"
+    "github.com/afiskon/go-elector"
+    "log"
+    "time"
+)
+
+func main() {
+    selfIdPtr := flag.String("uniqid", "", "Unique id of this node")
+    flag.Parse()
+
+    consulUrl := "http://localhost:8500/v1/kv/test/leader_election"
+    electorInst, err := elector.Create(*selfIdPtr, consulUrl, 15*time.Second)
+    if err != nil {
+        log.Panicf("Unable to create the elector: %s", err.Error())
+    }
+
+    electorInst.RegisterCallback(func(oldLeaderId string, newLeaderId string) {
+        log.Printf("Leader changed: '%s' -> '%s'\n", oldLeaderId, newLeaderId)
+    })
+
+    for {
+        leaderId := electorInst.GetCurrentLeader()
+        log.Printf("Current leader: '%s'\n", leaderId)
+        time.Sleep(5 * time.Second)
+    }
+}
+```
+
+Usage:
+
+```
+./leader-elect -uniqid archlinux1
+```
