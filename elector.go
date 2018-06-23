@@ -84,7 +84,7 @@ type httpClient struct {
 }
 
 // A bit more convenient method for sending HTTP requests
-func (client *httpClient) sendReq(method string, url string, reqBody []byte) (resp *http.Response, resBody []byte, err error) {
+func (client *httpClient) sendReq(method, url string, reqBody []byte) (resp *http.Response, resBody []byte, err error) {
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return nil, nil, err
@@ -119,7 +119,7 @@ func getCurrentLeader(conf *electorConfig) (leaderId string, err error) {
 // For internal usage in getCurrentLeader function only.
 func getCurrentLeaderInternal(conf *electorConfig) (leaderId string, repeat bool, err error) {
 	client := httpClient{}
-	resp, body, err := client.sendReq("GET", conf.consulUrl, nil)
+	resp, body, err := client.sendReq(http.MethodGet, conf.consulUrl, nil)
 	if err != nil {
 		err := fmt.Errorf("GET '%s' failed: '%s'", conf.consulUrl, err.Error())
 		return "", false, err
@@ -128,13 +128,14 @@ func getCurrentLeaderInternal(conf *electorConfig) (leaderId string, repeat bool
 	var update bool
 	var cas uint64
 
-	if resp.StatusCode == 404 {
+	switch {
+	case resp.StatusCode == 404:
 		// there is no leader yet
 		update = true
-	} else if resp.StatusCode != 200 {
+	case resp.StatusCode != 200:
 		err := fmt.Errorf("Unexpected HTTP status code (expected 200 or 404): %s", resp.Status)
 		return "", false, err
-	} else { // it's 200
+	default: // it's 200
 		var consulRespArr []consulResponse
 		err = json.Unmarshal(body, &consulRespArr)
 		if (err != nil) || len(consulRespArr) != 1 {
@@ -176,7 +177,7 @@ func getCurrentLeaderInternal(conf *electorConfig) (leaderId string, repeat bool
 	info := leaderInfo{LeaderId: conf.selfId, UpdateTime: time.Now().UTC()}
 	payload, _ := json.Marshal(info)
 	url := conf.consulUrl + "?cas=" + strconv.FormatUint(cas, 10)
-	resp, body, err = client.sendReq("PUT", url, payload)
+	resp, body, err = client.sendReq(http.MethodPut, url, payload)
 	if err != nil {
 		err := fmt.Errorf("PUT '%s' failed: '%s'", url, err.Error())
 		return "", false, err
@@ -243,7 +244,7 @@ func stateUpdaterProc(conf *electorConfig, updch chan<- request) {
 }
 
 // Create an instance of the elector.
-func Create(selfId string, consulUrl string, leaderHoldTime time.Duration) (inst *Instance, err error) {
+func Create(selfId, consulUrl string, leaderHoldTime time.Duration) (inst *Instance, err error) {
 	if selfId == "" {
 		err := fmt.Errorf("selfId should be a non-empty string")
 		return nil, err
